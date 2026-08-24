@@ -1,91 +1,103 @@
-# Analysis of Ski Resort Lift Ticket Prices
+# Predicting Ski Resort Lift Ticket Prices
 
-## Project Description
+![Python](https://img.shields.io/badge/Python-3-blue?logo=python&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-data%20wrangling-150458?logo=pandas)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-modeling-F7931E?logo=scikitlearn&logoColor=white)
+![Jupyter](https://img.shields.io/badge/Jupyter-notebook-F37626?logo=jupyter&logoColor=white)
 
-This project aims to predict the price of a single-day ski resort lift ticket using geographical features and resort-specific attributes. Ski resorts are a cornerstone of winter tourism, and the price of lift tickets can vary significantly. By employing various predictive modeling techniques, this analysis provides valuable insights for both consumers and resort operators.
+A machine learning analysis that predicts the price of a single-day ski resort lift ticket from geographical features and resort attributes, comparing eight regression models across three model families.
 
-The study leverages a dataset from Kaggle to build and evaluate several regression models, including:
-* Linear Regression (with feature selection and regularization)
-* K-Nearest Neighbors (KNN)
-* Decision Trees
-* Random Forest
-* AdaBoost
+**Best model: Linear Regression with 29 features selected via forward stepwise selection — Test R² = 0.789.**
 
-The performance of these models is compared to identify the most effective approach for forecasting lift ticket prices, offering a practical tool for market analysis and strategic decision-making. The final model, a **Linear Regression with 29 features selected via forward selection**, achieved the highest predictive accuracy with a **Test R² of 0.789**.
+<p align="center">
+  <img src="reports/figures/predicted_vs_actual.png" alt="Predicted vs. actual lift ticket prices (power-transformed scale) for the best model" width="600">
+</p>
 
 ---
+
+## Project Overview
+
+Ski resorts are a cornerstone of winter tourism, and lift ticket prices vary widely between resorts. This project builds and compares regression models that forecast ticket prices from resort characteristics — location, elevation, slopes, lift infrastructure, and amenities — providing a practical tool for market analysis for both consumers and resort operators.
+
+The full analysis lives in a single annotated notebook:
+[`notebooks/ski_resort_price_analysis.ipynb`](notebooks/ski_resort_price_analysis.ipynb)
 
 ## Dataset
 
-The data is sourced from the "Ski Resorts" dataset on Kaggle, provided by Ulrik Thyge Pedersen.
+The data comes from the ["Ski Resorts" dataset on Kaggle](https://www.kaggle.com/datasets/ulrikthygepedersen/ski-resorts/data), provided by Ulrik Thyge Pedersen. It covers **499 ski resorts worldwide** with **24 features** describing location, size, lift infrastructure, and amenities. The target variable is `Price` — the cost in Euros of a single-day lift ticket. A copy is included in this repository at [`data/resorts.csv`](data/resorts.csv).
 
-* **Source**: [Kaggle Ski Resorts Dataset](https://www.kaggle.com/datasets/ulrikthygepedersen/ski-resorts/data)
-* **Content**: The dataset contains information on 499 ski resorts worldwide, with 24 features describing their location, size, lift infrastructure, and amenities. The target variable for this analysis is the `Price` in Euros for a single-day lift ticket.
+## Methodology
 
----
+### Data cleaning
 
-## Exploratory Data Analysis (EDA) and Data Cleaning
+- Removed 9 resorts with a listed price of 0, identified as missing entries.
+- Investigated resorts with 0 beginner, intermediate, or difficult slopes — most are legitimately small, and notably Aspen Mountain correctly has 0 registered beginner slopes.
+- Dropped the `Longest run` feature: 205 of its values were 0, determined to represent missing data rather than genuinely short runs.
+- Removed one resort reporting 0 total lifts and 0 lift capacity.
 
-The initial phase involved a thorough exploration and cleaning of the dataset to prepare it for modeling.
+### Feature engineering & preprocessing
 
-* **Initial State**: The dataset began with 499 records and 24 features.
-* **Data Cleaning**:
-    * Removed 9 resorts where the `Price` was listed as 0, as these were identified as missing entries.
-    * Investigated resorts with 0 values for `Beginner slopes`, `Intermediate slopes`, or `Difficult slopes`. Notably, Aspen Mountain, a major resort, correctly has 0 registered beginner slopes.
-    * The `Longest run` feature, which had 205 zero values, was determined to represent missing data rather than actual runs of 0 km. Due to the high proportion of missing entries, this feature was dropped.
-    * One resort with 0 `Total lifts` and 0 `Lift capacity` was removed.
-* **Feature Engineering**:
-    * Two new features were created to better capture resort characteristics:
-        1.  `Elevation`: The vertical drop of the resort, calculated as `Highest point` - `Lowest point`.
-        2.  `Average_lift_capacity`: The average capacity per lift, calculated as `Lift capacity` / `Total lifts`.
-* **Data Transformation**:
-    * Categorical features (`Child friendly`, `Snowparks`, `Nightskiing`, `Summer skiing`) were converted from "Yes"/"No" strings to binary (1/0) integers.
-    * Numerical features showed non-normal distributions and were normalized using `PowerTransformer`.
-    * Geographical features (`Country`, `Continent`) were one-hot encoded to create dummy variables.
+- Derived two new features: `Elevation` (vertical drop, `Highest point − Lowest point`) and `Average_lift_capacity` (`Lift capacity / Total lifts`).
+- Converted Yes/No amenity columns (`Child friendly`, `Snowparks`, `Nightskiing`, `Summer skiing`) to binary indicators.
+- Normalized skewed numeric features with scikit-learn's `PowerTransformer`.
+- One-hot encoded `Country` and `Continent`.
 
----
+<p align="center">
+  <img src="reports/figures/correlation_heatmap.png" alt="Correlation heatmap of numeric predictors" width="650">
+</p>
 
-## Modeling and Results
+### Modeling
 
-A variety of regression models were trained and evaluated on the cleaned and preprocessed data. The data was split into a training set (80%) and a test set (20%).
+The data was split 80/20 into training and test sets. Models were tuned with cross-validated grid search where applicable and compared on test-set R².
 
-The performance of each model was measured by its R-squared (R²) score on the test set.
+## Results
 
-| Model                                        | Test R² Score | Notes                                                                   |
-| -------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| **Linear Regression (Forward Selection)** | **0.789** | **Best performing model with 29 features.** |
-| Linear Regression (Ridge, α=0.92)            | 0.768         | Performed better than the full model and Lasso.                         |
-| Random Forest Regressor                      | 0.765         | Best tree-based model. (max_leaf_nodes=190, n_estimators=260)           |
-| Linear Regression (Full Model)               | 0.762         | Baseline linear model with all features.                                |
-| Linear Regression (Lasso, α=0.002)           | 0.757         | Performed feature selection by shrinking some coefficients to zero.     |
-| K-Nearest Neighbors (KNN)                    | 0.724         | Optimal performance with k=5 neighbors.                                 |
-| AdaBoost Regressor                           | 0.675         | Performed worse than Random Forest. (learning_rate=2.69, n_estimators=650)|
-| Decision Tree Regressor                      | 0.666         | Poorest performance among the tested models. (max_depth=6, max_leaf_nodes=28) |
+| Model | Test R² | Notes |
+| --- | --- | --- |
+| **Linear Regression (forward selection)** | **0.789** | **Best model — 29 features selected** |
+| Linear Regression (Ridge, α = 0.92) | 0.768 | Best of the regularized linear models |
+| Random Forest | 0.765 | Best tree-based model (max_leaf_nodes = 190, n_estimators = 260) |
+| Linear Regression (full model) | 0.762 | Baseline with all features |
+| Linear Regression (Lasso, α = 0.002) | 0.757 | Shrinks some coefficients to zero |
+| K-Nearest Neighbors | 0.724 | Optimal at k = 5 |
+| AdaBoost | 0.675 | learning_rate = 2.69, n_estimators = 650 |
+| Decision Tree | 0.666 | max_depth = 6, max_leaf_nodes = 28 |
+
+Forward stepwise selection found that a 29-feature linear model outperformed both the full model and every other approach tested:
+
+<p align="center">
+  <img src="reports/figures/forward_selection_scores.png" alt="Test R² versus number of features selected by forward stepwise selection" width="600">
+</p>
 
 ### Conclusion
 
-The analysis demonstrates that a **Linear Regression model using forward selection** provides the most accurate predictions for ski resort lift ticket prices on this dataset. The model's residuals showed a slight tendency to overpredict cheaper resorts and underpredict more expensive ones, indicating potential areas for future improvement.
+A linear regression model using forward selection provides the most accurate predictions on this dataset. Residual analysis showed a slight tendency to overpredict cheaper resorts and underpredict more expensive ones — a potential direction for future improvement, along with incorporating the companion snowfall dataset that accompanies the resort data on Kaggle.
 
----
+## Repository Structure
 
-## Usage and Installation
+| Path | Purpose |
+| --- | --- |
+| `data/resorts.csv` | Source dataset (from Kaggle) |
+| `notebooks/ski_resort_price_analysis.ipynb` | Full analysis: EDA, cleaning, modeling, evaluation |
+| `reports/figures/` | Key figures exported from the analysis, including the fitted decision tree (`decision_tree.pdf`) |
+| `requirements.txt` | Python dependencies |
 
-To replicate this analysis, please follow these steps:
+## Getting Started
 
-1.  **Clone the repository**:
-    ```bash
-    git clone <repository-url>
-    ```
+```bash
+# 1. Clone the repository
+git clone https://github.com/chernobylx/SkiMLProject.git
+cd SkiMLProject
 
-2.  **Install dependencies**:
-    Ensure you have Python 3 and the following libraries installed:
-    ```bash
-    pip install pandas numpy matplotlib seaborn scikit-learn graphviz
-    ```
+# 2. Install dependencies (Python 3 required)
+pip install -r requirements.txt
 
-3.  **Download the Dataset**:
-    * Download the `resorts.csv` file from the [Kaggle Ski Resorts Dataset](https://www.kaggle.com/datasets/ulrikthygepedersen/ski-resorts/data).
-    * Create a `data` directory in the project's root folder and place the `resorts.csv` file inside it.
+# 3. Launch the notebook
+jupyter notebook notebooks/ski_resort_price_analysis.ipynb
+```
 
-4.  **Run the Notebook**:
-    * Launch Jupyter Notebook or JupyterLab and open the `ski.ipynb` file to view and run the complete analysis.
+> **Note:** rendering the decision tree visualization additionally requires the [Graphviz system package](https://graphviz.org/download/) (`brew install graphviz` / `apt install graphviz`). All other cells run without it.
+
+## Acknowledgements
+
+- Dataset: [Ski Resorts](https://www.kaggle.com/datasets/ulrikthygepedersen/ski-resorts/data) by Ulrik Thyge Pedersen on Kaggle.
